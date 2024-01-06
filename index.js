@@ -24,28 +24,21 @@ client.on('message',message=>{
 
   //console.log({typeMessage},{bodyMessage},{notifyNameMessage},{remoteMessageNumber},{orderTitle},{itemCount},{totalAmount1000},{totalCurrencyCode});
   //console.log(message);
-  if(typeMessage === "email"){
+  if(typeMessage === "order"){
     const imageUrl= 'https://tecnotek.uy/wp-content/uploads/2022/03/QR_MercadoPago-e1647385811898-768x984.png'
     MessageMedia.fromUrl(imageUrl).then(async(media) => {
-      const subject = `Un cliente quiere ordenar`
+      //const messageText = new MessageMedia(media.mimetype, media.data, media.filename);
+      //client.sendMessage(message.from, messageText);
+      const subject = `Un cliente quiere ordenar ${message._data.orderTitle}`
       const body = `
                       <h1>Click en el link</h1>
                       <a href="https://wa.me/${message._data.id.remote}">Ir a la conversación</a>
-                      <p>${message._data.notifyName} con número de celular ${message._data.id.remote} quiere ordenar</p>
+                      <p>${message._data.notifyName} con número de celular ${message._data.id.remote} quiere ordenar: ${message._data.orderTitle}</p>
+                      <p>Con un costo de Bs. ${message._data.totalAmount1000/1000}</p>
                       <h1>Click en el link</h1>
                       <a href="https://wa.me/${message._data.id.remote}">Ir a la conversación</a>
                   `
       await smtpServer.mailer('ronaldblancobalboa@gmail.com',subject,body)
-      setTimeout(()=>{
-        client.sendMessage(message.from, 'Deposita el 50% del costo total para reservar tu pedido');  
-      },1500)
-    })
-  }
-  if(typeMessage === "order"){
-    const imageUrl= 'https://tecnotek.uy/wp-content/uploads/2022/03/QR_MercadoPago-e1647385811898-768x984.png'
-    MessageMedia.fromUrl(imageUrl).then((media) => {
-      //const messageText = new MessageMedia(media.mimetype, media.data, media.filename);
-      //client.sendMessage(message.from, messageText);
       setTimeout(()=>{
         client.sendMessage(message.from, 'Deposita el 50% del costo total para reservar tu pedido');  
       },1500)
