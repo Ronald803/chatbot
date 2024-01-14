@@ -2,6 +2,8 @@ const qrcode = require('qrcode-terminal');
 const {Client,MessageMedia} = require('whatsapp-web.js');
 const smtpServer = require('./services/smtp/smtpServer');
 const client = new Client()
+const path = require('path');
+const fs = require('fs');
 
 client.on('qr',qr=>{
     qrcode.generate(qr, {small: true})
@@ -11,7 +13,7 @@ client.on('ready',()=>{
     console.log("Logueado correctamente")
 })
 
-client.on('message',message=>{
+client.on('message',async message=>{
   const typeMessage = message._data.type;             // Esta variable puede llegar a ser 'chat' o tambien 'order'
   const bodyMessage = message._data.body;             // Esta variable es el cuerpo del mensaje cuando el tipo de mensaje es chat
                                                       // si el tipo de mensaje es 'order' este campo esta vacío
@@ -24,36 +26,83 @@ client.on('message',message=>{
 
   //console.log({typeMessage},{bodyMessage},{notifyNameMessage},{remoteMessageNumber},{orderTitle},{itemCount},{totalAmount1000},{totalCurrencyCode});
   //console.log(message);
-  if(typeMessage === "order"){
-    const imageUrl= 'https://tecnotek.uy/wp-content/uploads/2022/03/QR_MercadoPago-e1647385811898-768x984.png'
-    MessageMedia.fromUrl(imageUrl).then(async(media) => {
-      //const messageText = new MessageMedia(media.mimetype, media.data, media.filename);
-      //client.sendMessage(message.from, messageText);
-      const subject = `Un cliente quiere ordenar ${message._data.orderTitle}`
-      const body = `
-                      <h1>Click en el link</h1>
-                      <a href="https://wa.me/${message._data.id.remote}">Ir a la conversación</a>
-                      <p>${message._data.notifyName} con número de celular ${message._data.id.remote} quiere ordenar: ${message._data.orderTitle}</p>
-                      <p>Con un costo de Bs. ${message._data.totalAmount1000/1000}</p>
-                      <h1>Click en el link</h1>
-                      <a href="https://wa.me/${message._data.id.remote}">Ir a la conversación</a>
-                  `
-      await smtpServer.mailer('ronaldblancobalboa@gmail.com',subject,body)
-      setTimeout(()=>{
-        client.sendMessage(message.from, 'Deposita el 50% del costo total para reservar tu pedido');  
-      },1500)
-    })
+  // if(typeMessage === "order"){
+  //   const imageUrl= 'https://tecnotek.uy/wp-content/uploads/2022/03/QR_MercadoPago-e1647385811898-768x984.png'
+  //   MessageMedia.fromUrl(imageUrl).then(async(media) => {
+  //     //const messageText = new MessageMedia(media.mimetype, media.data, media.filename);
+  //     //client.sendMessage(message.from, messageText);
+  //     const subject = `Un cliente quiere ordenar ${message._data.orderTitle}`
+  //     const body = `
+  //                     <h1>Click en el link</h1>
+  //                     <a href="https://wa.me/${message._data.id.remote}">Ir a la conversación</a>
+  //                     <p>${message._data.notifyName} con número de celular ${message._data.id.remote} quiere ordenar: ${message._data.orderTitle}</p>
+  //                     <p>Con un costo de Bs. ${message._data.totalAmount1000/1000}</p>
+  //                     <h1>Click en el link</h1>
+  //                     <a href="https://wa.me/${message._data.id.remote}">Ir a la conversación</a>
+  //                 `
+  //     await smtpServer.mailer('ronaldblancobalboa@gmail.com',subject,body)
+  //     setTimeout(()=>{
+  //       client.sendMessage(message.from, 'Deposita el 50% del costo total para reservar tu pedido');  
+  //     },1500)
+  //   })
+  // }
+  // if(isThisWordInTheString("hola",message.body)){
+  //   const imageUrl= 'https://scontent.flpb1-1.fna.fbcdn.net/v/t39.30808-6/314066700_184596134092273_650221308378870268_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=9c7eae&_nc_ohc=-ooihRuIztMAX_Z2ilw&_nc_ht=scontent.flpb1-1.fna&oh=00_AfDVOKaAeQ2bT-aioyVrXc_xGqRrCbNwWCmdp_yxOGU73A&oe=658B88CE'
+  //   MessageMedia.fromUrl(imageUrl).then((media) => {
+  //     console.log(media);
+  //     //const messageText = new MessageMedia(media.mimetype, media.data, media.filename);
+  //     client.sendMessage(new MessageMedia(media.mimetype, media.data, media.filename));
+  //     setTimeout(()=>{
+  //       client.sendMessage(message.from, 'Hola!😄 Somos Academia Prometeo. Te comparto las siguientes opciones de interes sobre la Academia\n1. Libro *Medicina* 👈\n2. Libro *Matematica* 👈\n3. Tarjetas *Terminología* Médica 👈\nEscribe la opción de tu interes, ejemplo: "Medicina."\nSi gustas puedes realizar tu pedido directamente de nuestro catálogo:\nhttps://wa.me/c/59175252611');      
+  //     },1500)
+  //   })
+  // }
+  if (typeMessage === "order") {
+    const media = MessageMedia.fromFilePath('qr-de-pago.webp');
+    const chat = await message.getChat();
+    chat.sendMessage(media);
+    const subject = `Un cliente quiere ordenar ${message._data.orderTitle}`
+    const body = `
+                    <h1>Click en el link</h1>
+                    <a href="https://wa.me/${message._data.id.remote}">Ir a la conversación</a>
+                    <p>${message._data.notifyName} con número de celular ${message._data.id.remote} quiere ordenar: ${message._data.orderTitle}</p>
+                    <p>Con un costo de Bs. ${message._data.totalAmount1000/1000}</p>
+                    <h1>Click en el link</h1>
+                    <a href="https://wa.me/${message._data.id.remote}">Ir a la conversación</a>
+                `
+    await smtpServer.mailer('ronaldblancobalboa@gmail.com',subject,body)
+    setTimeout(()=>{
+      client.sendMessage(message.from, 'Deposita el 50% del costo total para reservar tu pedido')
+    },1500)
   }
-  if(isThisWordInTheString("hola",message.body)){
-    const imageUrl= 'https://scontent.flpb1-1.fna.fbcdn.net/v/t39.30808-6/314066700_184596134092273_650221308378870268_n.jpg?_nc_cat=102&ccb=1-7&_nc_sid=9c7eae&_nc_ohc=-ooihRuIztMAX_Z2ilw&_nc_ht=scontent.flpb1-1.fna&oh=00_AfDVOKaAeQ2bT-aioyVrXc_xGqRrCbNwWCmdp_yxOGU73A&oe=658B88CE'
-    MessageMedia.fromUrl(imageUrl).then((media) => {
-      //const messageText = new MessageMedia(media.mimetype, media.data, media.filename);
-      //client.sendMessage(message.from, messageText);
-      setTimeout(()=>{
-        client.sendMessage(message.from, 'Hola!😄 Somos Academia Prometeo. Te comparto las siguientes opciones de interes sobre la Academia\n1. Libro *Medicina* 👈\n2. Libro *Matematica* 👈\n3. Tarjetas *Terminología* Médica 👈\nEscribe la opción de tu interes, ejemplo: "Medicina."\nSi gustas puedes realizar tu pedido directamente de nuestro catálogo:\nhttps://wa.me/c/59175252611');      
-      },1500)
-    })
+  if (isThisWordInTheString("hola", message.body)) {
+    const media = MessageMedia.fromFilePath('LadyGlamLogo.png');
+    const chat = await message.getChat();
+    chat.sendMessage(media);
+    setTimeout(()=>{
+      client.sendMessage(message.from, '¡Hola! 👋 ¡Bienvenida a Lady Glam! 🌟 Gracias por contactarte con nosotros. Te saluda Carlita (asesora de ventas) y estoy para hacerte más fácil encontrar el calzado perfecto. ¿En qué puedo ayudarte hoy?');
+      client.sendMessage(message.from, '👉 *A.* Ver Catálogo\n👉 *B.* Guía para elección de tallas\n👉 *C.* Asistencia personalizada\n👉 *D.* Servicios post venta\n')
+      client.sendMessage(message.from, 'Elige la opción que gustes (Ejemplo: "A")')
+    },1500)
   }
+  if (isThisWordInTheString("a", message.body)) {
+      client.sendMessage(message.from, '🥿 ¡Genial! ¡Tenemos las últimas tendencias que seguro te encantarán! Click en https://wa.me/c/59175252611');
+  }
+  if (isThisWordInTheString("b", message.body)) {
+    client.sendMessage(message.from, '*Guía para elección de tallas*\n👠 ¡Entendemos lo importante que es encontrar la talla perfecta! ¿Quieres algunos consejos para asegurarte de que tus zapatos te queden como un guante?');
+    const media = MessageMedia.fromFilePath('tallas-de-zapatos.jpg');
+    const chat = await message.getChat();
+    setTimeout(()=>{
+      chat.sendMessage(media);
+    },1500)
+  }
+  if (isThisWordInTheString("c", message.body)) {
+    client.sendMessage(message.from, '*Asistencia Personalizada*\n👡 ¡Claro! Estoy aquí para ayudarte a encontrar el estilo que se adapte a ti. ¿Alguna preferencia en particular o necesitas recomendaciones personalizadas?');
+  }
+  if (isThisWordInTheString("d", message.body)) {
+    client.sendMessage(message.from, '*Servicios post venta*\n👡 🛍 Si necesitas ayuda o tienes alguna pregunta, estoy aquí para ti.');
+  }
+
   if(isThisWordInTheString("medicina",message.body)){
     const imageUrl= 'https://scontent.flpb1-2.fna.fbcdn.net/v/t39.30808-6/259761621_471628654611604_161293813508830690_n.jpg?_nc_cat=111&ccb=1-7&_nc_sid=3635dc&_nc_ohc=ci7MpUXtMf8AX-gu3qa&_nc_ht=scontent.flpb1-2.fna&oh=00_AfC3wb-v0IuzDEOIriK5_ZXhtvTT4N8NFR6N48wTpH5_0Q&oe=658D2C6A'
     MessageMedia.fromUrl(imageUrl).then((media) => {
